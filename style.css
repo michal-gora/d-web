@@ -25,6 +25,12 @@ body {
     text-align: center;
     cursor: pointer;
     transition: opacity 1s ease;
+    
+    /* Add these lines to remove the mobile tap highlight and outline */
+    -webkit-tap-highlight-color: transparent;
+    outline: none;
+    user-select: none;
+    -webkit-user-select: none;
 }
 
 #candle-scene h3 {
