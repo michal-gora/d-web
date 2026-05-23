@@ -1,0 +1,130 @@
+body {
+    background-color: #f0ead6; /* Warm, paper-like background */
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    margin: 0;
+    font-family: 'Arial', sans-serif;
+    overflow: hidden;
+}
+
+.hidden {
+    display: none !important;
+}
+
+/* --- CANDLE SCENE --- */
+#candle-scene {
+    text-align: center;
+}
+
+.candle {
+    position: relative;
+    width: 60px;
+    height: 150px;
+    margin: 50px auto;
+}
+
+.candle-body {
+    width: 60px;
+    height: 120px;
+    background-color: #e6e6e6;
+    border-radius: 5px;
+    position: absolute;
+    bottom: 0;
+    box-shadow: inset -10px 0 10px rgba(0,0,0,0.1);
+}
+
+.candle-wick {
+    width: 4px;
+    height: 15px;
+    background-color: #333;
+    position: absolute;
+    top: 15px;
+    left: 28px;
+}
+
+.candle-flame {
+    width: 20px;
+    height: 40px;
+    background-color: #ff9d00;
+    border-radius: 50% 50% 20% 20%;
+    position: absolute;
+    top: -20px;
+    left: 20px;
+    box-shadow: 0 0 20px #ff9d00, 0 0 40px #ff5e00;
+    animation: flicker 0.1s infinite alternate;
+    transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+}
+
+@keyframes flicker {
+    0% { transform: scale(1) rotate(-1deg); }
+    100% { transform: scale(1.1) rotate(1deg); }
+}
+
+/* State when the flame is blown out */
+.blown-out {
+    opacity: 0;
+    transform: scale(0);
+}
+
+button {
+    margin-top: 20px;
+    padding: 10px 20px;
+    cursor: pointer;
+    border: none;
+    background-color: #333;
+    color: white;
+    border-radius: 5px;
+}
+
+/* --- POLAROID SCENE --- */
+#card-scene {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.polaroid {
+    background: white;
+    padding: 15px 15px 60px 15px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+    transform: rotate(-3deg);
+    position: relative;
+    width: 300px;
+}
+
+.polaroid img {
+    width: 100%;
+    height: auto;
+    display: block;
+}
+
+.polaroid figcaption {
+    font-family: 'Just Another Hand', cursive;
+    font-size: 2rem;
+    text-align: center;
+    margin-top: 15px;
+    color: #333;
+}
+
+/* The Masking Tape Effect */
+.tape {
+    position: absolute;
+    top: -15px;
+    left: 50%;
+    transform: translateX(-50%) rotate(2deg);
+    width: 100px;
+    height: 30px;
+    background-color: rgba(255, 255, 200, 0.6); /* Translucent yellowish */
+    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+    z-index: 10;
+}
+
+.card-text {
+    font-family: 'Just Another Hand', cursive;
+    font-size: 2.5rem;
+    text-align: center;
+    margin-top: 30px;
+    transform: rotate(1deg);
+}

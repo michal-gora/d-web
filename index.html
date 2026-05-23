@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Happy Birthday!</title>
+    <link rel="stylesheet" href="style.css">
+    <!-- Google Font for handwritten text -->
+    <link href="https://fonts.googleapis.com/css2?family=Just+Another+Hand&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <!-- Scene 1: The Cupcake and Candle -->
+    <!-- When you click this div, the blowOut() function runs -->
+    <div id="candle-scene" onclick="blowOut()">
+        <h1>Click the flame to blow it out!</h1>
+        
+        <!-- Cupcake Shape -->
+        <div class="cupcake">
+            <div class="flame" id="flame"></div>
+            <div class="candle"></div>
+            <div class="frosting"></div>
+            <div class="cup"></div>
+        </div>
+    </div>
+
+    <!-- Scene 2: The Hidden Birthday Card -->
+    <!-- This starts hidden with the 'hide-scene' class -->
+    <div id="card-scene" class="hide-scene">
+        <figure class="polaroid">
+            <div class="tape"></div>
+            <!-- Replace with your actual image path -->
+            <img src="your-picture-here.jpg" alt="Me and my brother">
+            <figcaption>Happy Birthday Bro!</figcaption>
+        </figure>
+        <div class="card-text">
+            <p>Wishing you the best birthday ever.</p>
+        </div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
