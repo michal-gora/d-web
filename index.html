@@ -3,38 +3,52 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Stops search engines from indexing the page or following links -->
+    <meta name="robots" content="noindex, nofollow">
     <title>Happy Birthday!</title>
     <link rel="stylesheet" href="style.css">
-    <!-- Google Font for handwritten text -->
     <link href="https://fonts.googleapis.com/css2?family=Just+Another+Hand&display=swap" rel="stylesheet">
 </head>
 <body>
 
     <!-- Scene 1: The Cupcake and Candle -->
-    <!-- When you click this div, the blowOut() function runs -->
     <div id="candle-scene" onclick="blowOut()">
-        <h1>Click the flame to blow it out!</h1>
-        
-        <!-- Cupcake Shape -->
-        <div class="cupcake">
+        <div class="cupcake-container">
+            <!-- Flame and Wick -->
             <div class="flame" id="flame"></div>
+            <div class="wick" id="wick"></div>
+            <!-- Candle -->
             <div class="candle"></div>
+            <!-- Frosting -->
             <div class="frosting"></div>
-            <div class="cup"></div>
+            <div class="frosting-layer"></div>
+            <!-- Cup -->
+            <div class="cup">20</div>
         </div>
+        <br>
+        <h3>Zgaś świeczkę!</h3>
     </div>
 
     <!-- Scene 2: The Hidden Birthday Card -->
-    <!-- This starts hidden with the 'hide-scene' class -->
     <div id="card-scene" class="hide-scene">
         <figure class="polaroid">
             <div class="tape"></div>
             <!-- Replace with your actual image path -->
-            <img src="your-picture-here.jpg" alt="Me and my brother">
-            <figcaption>Happy Birthday Bro!</figcaption>
+            <img src="photo.JPG" alt="wygłupy">
+            <figcaption>Wszystkiego najlepszego!</figcaption>
         </figure>
         <div class="card-text">
-            <p>Wishing you the best birthday ever.</p>
+            <p>
+                Drogi braciszku,
+                <br>
+                życzę ci dużo przygód, zabawy, przjyjaciół i wspełnienia marzeń w nowej dekadzie twojego życia. Bawcie się dobrze! 
+                <br>
+                Otórz twoja własna domena.
+                <br>
+                <br>
+                Twój brat
+
+            </p>
         </div>
     </div>
 
