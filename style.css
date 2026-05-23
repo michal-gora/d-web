@@ -3,10 +3,21 @@ body {
     display: flex;
     justify-content: center;
     align-items: center;
-    height: 100vh;
+    
+    /* Changed from height to min-height so it can grow if needed */
+    min-height: 100vh; 
+    
     margin: 0;
+    
+    /* Adds breathing room so content never touches the edges */
+    padding: 40px 20px; 
+    box-sizing: border-box; 
+    
     font-family: 'Arial', sans-serif;
-    overflow: hidden;
+    
+    /* Allow vertical scrolling, but prevent accidental horizontal scrolling */
+    overflow-x: hidden; 
+    overflow-y: auto; 
 }
 
 /* --- CUPCAKE SCENE --- */
