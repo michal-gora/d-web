@@ -56,7 +56,9 @@
             line-height: 1.2;
         }
 
-        h1, h2, .location-title {
+        h1,
+        h2,
+        .location-title {
             position: relative;
             z-index: 20;
             /* Optional: Add a tiny text-shadow so it stays readable if smoke goes behind it */
@@ -99,31 +101,30 @@
             object-fit: contain;
             position: relative;
             z-index: 1;
-            transition: transform 0.8s ease;
+            /* Remove the infinite animation from here */
             transform-origin: bottom center;
-
-            /* Add the new CSS variable for duration with a fallback */
-            animation: jumpWait var(--jump-duration, 5s) infinite;
         }
 
-        .state-hot .gnome-img {
-            animation: none;
+        /* The class JS will add/remove to trigger the jump */
+        .jumping {
+            animation: jump 0.1s ease-in-out forwards;
         }
 
-                @keyframes jumpWait {
+        @keyframes jump {
             0% {
                 transform: translateY(0);
             }
-            2% {
-                transform: translateY(-30px); /* Jumps slightly higher too! */
+
+            50% {
+                transform: translateY(-30px);
             }
-            4% {
-                transform: translateY(0);
-            }
+
+            /* Peak of jump */
             100% {
                 transform: translateY(0);
             }
         }
+
 
         /* --- THE PAN & PIERÓG --- */
         .pan-container {
@@ -505,21 +506,13 @@
 
                 // --- TEST MODE --- 
                 // Uncomment to test extreme temperatures (e.g. 38)
-                temp = 26;
+                // temp = 20.0;
 
                 tempDisplay.innerText = `${temp}°C`;
 
                 const steamLevel = getIntensity(temp, 20, 28);
                 const smokeLevel = getIntensity(temp, 25, 38);
                 const fireLevel = getIntensity(temp, 28, 35);
-
-                let jumpDuration = 6;
-                if (temp > 15 && temp < 30) {
-                    // Map the temperature linearly to the duration
-                    jumpDuration = 6 - ((temp - 15) / 14) * 4.5;
-                }
-                // Inject the variable into the CSS
-                document.documentElement.style.setProperty('--jump-duration', `${jumpDuration.toFixed(2)}s`);
 
                 document.documentElement.style.setProperty('--steam-intensity', steamLevel);
                 document.documentElement.style.setProperty('--smoke-intensity', smokeLevel);
@@ -529,7 +522,7 @@
                     statusText.innerHTML = `Odczuwalna: ${feelsLike}°C.<br>Krasnale są bezpieczne. Pierogi surowe.`;
                     gnome.src = imgNormal;
                     document.body.classList.remove('state-warm', 'state-hot');
-                } else if (temp >= 25 && temp < 30) {
+                } else if (temp >= 25 && temp < 35) {
                     statusText.innerHTML = `Odczuwalna: ${feelsLike}°C.<br>Krasnal paruje. Pierogi wchodzą na patelnię.`;
                     gnome.src = imgSweat;
                     document.body.classList.remove('state-hot');
@@ -539,6 +532,53 @@
                     gnome.src = imgMelt;
                     document.body.classList.remove('state-warm');
                     document.body.classList.add('state-hot');
+                }
+
+                // --- JUMP TIMING LOGIC (Exponential Curve) ---
+
+                // 1. Temperature Thresholds
+                const MIN_TEMP = 20; // °C where jumping starts getting faster
+                const MAX_TEMP = 35; // °C where he melts and jumping stops
+
+                // 2. Delay Thresholds (Milliseconds between jumps)
+                const MAX_DELAY_MS = 6000; // Slowest wait time
+                const MIN_DELAY_MS = 100;  // Fastest wait time (Hard cap)
+
+                const JUMP_ANIMATION_DURATION_MS = 100; // MUST match the '1.0s' in your CSS
+
+                // Default to the slowest wait time
+                let waitTime = MAX_DELAY_MS;
+
+                if (temp > MIN_TEMP && temp < MAX_TEMP) {
+                    // Calculate 't' (a ratio from 0.0 to 1.0 based on temperature)
+                    const t = (temp - MIN_TEMP) / (MAX_TEMP - MIN_TEMP);
+
+                    // Exponential interpolation: 
+                    // This creates a perfectly smooth, natural acceleration curve.
+                    // At 21°C it smoothly drops to ~4570ms instead of dropping off a cliff.
+                    waitTime = MAX_DELAY_MS * Math.pow(MIN_DELAY_MS / MAX_DELAY_MS, t);
+
+                } else if (temp >= MAX_TEMP) {
+                    waitTime = MIN_DELAY_MS;
+                }
+
+                // Clear any existing jump timeout
+                if (window.jumpTimeout) clearTimeout(window.jumpTimeout);
+
+                // Start the jumping loop
+                function triggerJump() {
+                    if (temp >= MAX_TEMP) return;
+
+                    gnome.classList.add('jumping');
+
+                    setTimeout(() => {
+                        gnome.classList.remove('jumping');
+                        window.jumpTimeout = setTimeout(triggerJump, waitTime);
+                    }, JUMP_ANIMATION_DURATION_MS);
+                }
+
+                if (temp < MAX_TEMP) {
+                    triggerJump();
                 }
 
             } catch (error) {
