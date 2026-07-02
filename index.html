@@ -103,33 +103,26 @@
             transform-origin: bottom center;
 
             /* Add the new CSS variable for duration with a fallback */
-            animation: jumpWait var(--jump-duration, 5s) infinite ease-in-out;
+            animation: jumpWait var(--jump-duration, 5s) infinite;
         }
 
         .state-hot .gnome-img {
             animation: none;
         }
 
-        @keyframes jumpWait {
+                @keyframes jumpWait {
             0% {
                 transform: translateY(0);
             }
-
-            10% {
-                transform: translateY(-30px);
+            2% {
+                transform: translateY(-30px); /* Jumps slightly higher too! */
             }
-
-            /* Jump up */
-            20% {
+            4% {
                 transform: translateY(0);
             }
-
-            /* Land back down */
             100% {
                 transform: translateY(0);
             }
-
-            /* Wait perfectly still until the next loop */
         }
 
         /* --- THE PAN & PIERÓG --- */
@@ -512,7 +505,7 @@
 
                 // --- TEST MODE --- 
                 // Uncomment to test extreme temperatures (e.g. 38)
-                // temp = 36;
+                temp = 26;
 
                 tempDisplay.innerText = `${temp}°C`;
 
