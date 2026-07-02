@@ -1,17 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Wrocław Heatwave Monitor</title>
-    <!-- <link rel="stylesheet" href="style.css"> -->
     <link href="https://fonts.googleapis.com/css2?family=Just+Another+Hand&display=swap" rel="stylesheet">
-
     <style>
+        /* --- DYNAMIC CSS VARIABLES --- */
+        :root {
+            --steam-intensity: 0;
+            --smoke-intensity: 0;
+            --fire-intensity: 0;
+        }
+
+        /* --- GLOBAL STYLES --- */
         body {
             background-color: #e2d8c3;
-            /* Cobblestone-ish warm gray */
             display: flex;
             justify-content: center;
             align-items: center;
@@ -22,14 +26,17 @@
             font-family: 'Arial', sans-serif;
             color: #333;
             overflow-x: hidden;
+            transition: background-color 1s ease;
         }
 
         #weather-dashboard {
             text-align: center;
-            background: rgba(255, 255, 255, 0.5);
+            background: rgba(255, 255, 255, 0.6);
             padding: 40px;
             border-radius: 20px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.15);
+            max-width: 550px;
+            width: 100%;
         }
 
         h1 {
@@ -41,10 +48,11 @@
 
         h2 {
             font-family: 'Just Another Hand', cursive;
-            font-size: 2.5rem;
+            font-size: 2.2rem;
             margin-top: 0;
             margin-bottom: 40px;
             color: #555;
+            line-height: 1.2;
         }
 
         /* --- THE SCENE --- */
@@ -53,23 +61,35 @@
             justify-content: center;
             align-items: flex-end;
             gap: 30px;
-            height: 150px;
+            height: 220px;
             position: relative;
         }
 
-        /* The Gnome */
-        .gnome {
-            font-size: 6rem;
-            line-height: 1;
-            transition: all 1s ease;
+        /* --- THE GNOME --- */
+        .gnome-wrap {
+            position: relative;
+            width: 160px;
+            height: 180px;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+        }
+
+        .gnome-img {
+            height: 150px;
+            width: auto;
+            object-fit: contain;
+            position: relative;
+            z-index: 2;
+            transition: transform 0.8s ease, filter 0.8s ease;
             transform-origin: bottom center;
         }
 
-        /* The Pan */
+        /* --- THE PAN & PIERÓG --- */
         .pan-container {
             position: relative;
             width: 120px;
-            height: 100px;
+            height: 120px;
             display: flex;
             justify-content: center;
             align-items: flex-end;
@@ -82,95 +102,157 @@
             height: 20px;
             background-color: #222;
             border-radius: 50%;
-            box-shadow: 0 10px 10px rgba(0, 0, 0, 0.3);
+            box-shadow: 0 10px 10px rgba(0,0,0,0.3);
+            z-index: 1;
         }
 
-        /* The Pieróg */
         .pierog {
-            font-size: 4rem;
+            font-size: 3.5rem;
             position: absolute;
-            bottom: 20px;
+            bottom: 15px;
             transition: all 1s ease;
             z-index: 2;
         }
 
-        .fire {
-            font-size: 5rem;
+        /* --- DYNAMIC STEAM --- */
+        .steam {
             position: absolute;
-            bottom: 20px;
-            z-index: 3;
-            animation: flicker 0.2s infinite alternate;
+            left: 50%;
+            bottom: 110px;
+            /* Continuously scales from 0.2x size to 1.0x size based on temp */
+            transform: translateX(-50%) scale(calc(0.2 + var(--steam-intensity) * 0.8));
+            transform-origin: bottom center;
+            width: 100px;
+            height: 120px;
+            pointer-events: none;
+            z-index: 4;
+            /* Continuously fades in */
+            opacity: var(--steam-intensity);
         }
 
-        .hide {
-            display: none !important;
+        .steam span {
+            position: absolute;
+            bottom: 0;
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(255,255,255,0.8) 0%, rgba(255,255,255,0.2) 55%, rgba(255,255,255,0) 75%);
+            filter: blur(3px);
+            opacity: 0;
+            animation: riseUp 3s infinite ease-out;
         }
 
-        @keyframes flicker {
-            0% {
-                transform: scale(1) rotate(-5deg);
-            }
-
-            100% {
-                transform: scale(1.1) rotate(5deg);
-            }
+        /* --- DYNAMIC SMOKE --- */
+        .smoke {
+            position: absolute;
+            left: 50%;
+            bottom: 60px;
+            /* Continuously scales from 0.2x size up to 1.5x (massive) based on temp */
+            transform: translateX(-50%) scale(calc(0.2 + var(--smoke-intensity) * 1.3));
+            transform-origin: bottom center;
+            width: 120px;
+            height: 150px;
+            pointer-events: none;
+            z-index: 4;
+            /* Continuously fades in */
+            opacity: var(--smoke-intensity);
         }
 
-        /* --- HEATWAVE STATES (Triggered by JS) --- */
-
-        /* State: Warm (Sweating gnome, golden pieróg) */
-        .state-warm .gnome {
-            animation: shake 2s infinite;
+        .smoke span {
+            position: absolute;
+            bottom: 0;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(40,40,40,0.9) 0%, rgba(60,60,60,0.5) 55%, rgba(0,0,0,0) 75%);
+            filter: blur(4px);
+            opacity: 0;
+            animation: riseUp 2.5s infinite ease-in;
         }
 
+        .steam span:nth-child(1), .smoke span:nth-child(1) { left: 5px; animation-delay: 0s; }
+        .steam span:nth-child(2), .smoke span:nth-child(2) { left: 30px; animation-delay: 0.6s; }
+        .steam span:nth-child(3), .smoke span:nth-child(3) { left: 55px; animation-delay: 1.2s; }
+        .steam span:nth-child(4), .smoke span:nth-child(4) { left: 80px; animation-delay: 1.8s; }
+
+        @keyframes riseUp {
+            0% { transform: translateY(0) scale(0.5); opacity: 0; }
+            20% { opacity: 0.7; }
+            60% { transform: translateY(-50px) scale(1.2); opacity: 0.4; }
+            100% { transform: translateY(-100px) scale(2); opacity: 0; }
+        }
+
+        /* --- DYNAMIC FIRE --- */
+        .fire {
+            position: absolute;
+            bottom: 5px;
+            left: 50%;
+            /* Continuously scales fire size */
+            transform: translateX(-50%) scale(calc(0.1 + var(--fire-intensity) * 0.9));
+            transform-origin: bottom center;
+            width: 70px;
+            height: 90px;
+            pointer-events: none;
+            z-index: 5;
+            /* Continuously fades in */
+            opacity: var(--fire-intensity);
+        }
+
+        .flame {
+            position: absolute;
+            bottom: 0;
+            left: 50%;
+            border-radius: 50% 50% 35% 35%;
+            transform-origin: center bottom;
+            background: linear-gradient(to top, #ff4500 0%, #ff8c00 38%, #ffd54a 72%, rgba(255,255,255,0.95) 100%);
+            box-shadow: 0 0 18px rgba(255,120,0,0.55);
+            animation: flameFlicker 0.6s infinite alternate ease-in-out;
+        }
+
+        .flame-1 { width: 30px; height: 65px; margin-left: -15px; z-index: 3; }
+        .flame-2 { width: 22px; height: 45px; margin-left: -28px; bottom: 4px; animation-delay: 0.15s; opacity: 0.9; }
+        .flame-3 { width: 20px; height: 40px; margin-left: 10px; bottom: 6px; animation-delay: 0.3s; opacity: 0.85; }
+
+        @keyframes flameFlicker {
+            0% { transform: scaleY(1) rotate(-3deg); opacity: 0.9; }
+            50% { transform: scaleY(1.1) rotate(3deg); opacity: 1; }
+            100% { transform: scaleY(0.9) rotate(-4deg); opacity: 0.85; }
+        }
+
+        /* --- DISCRETE HEATWAVE STATES (For the static images) --- */
         .state-warm .pierog {
             filter: sepia(1) saturate(3) hue-rotate(-30deg);
-            /* Makes it look fried/golden */
+            transform: translateY(-5px) rotate(5deg);
         }
 
-        /* State: Heatwave (Melting gnome, burning pieróg) */
-        .state-hot .gnome {
-            /* Melts the gnome into a puddle */
-            transform: scaleY(0.4) scaleX(1.5);
-            filter: grayscale(0.5) brightness(0.8) sepia(1) hue-rotate(-50deg) saturate(5);
-            /* Bronze/Red hue */
-        }
-
+        .state-hot { background-color: #d1bfae; }
         .state-hot .pierog {
-            filter: brightness(0.2);
-            /* Turns it burnt black */
+            filter: brightness(0.15);
+            transform: translateY(-5px) rotate(-10deg);
         }
+        .state-hot .gnome-img { filter: drop-shadow(0 15px 10px rgba(180, 50, 0, 0.4)); }
 
-        @keyframes shake {
-
-            0%,
-            100% {
-                transform: translateX(0);
-            }
-
-            50% {
-                transform: translateX(5px);
-            }
-        }
     </style>
 </head>
-
 <body>
 
     <div id="weather-dashboard">
-        <!-- Text gets updated by JavaScript -->
         <h1 id="temp-display">Pingowanie krasnali... 📡</h1>
         <h2 id="status-text">Sprawdzanie temperatury bruku...</h2>
-
+        
         <div class="scene">
-            <!-- The Gnome -->
-            <div id="gnome" class="gnome">🧙‍♂️</div>
-
-            <!-- The Frying Pan & Pieróg -->
+            <div class="gnome-wrap">
+                <img id="gnome" class="gnome-img" src="https://user-gen-media-assets.s3.amazonaws.com/gpt4o_images/cb2f6fe2-1d3d-4ad9-bb0f-4192474c9c60.png" alt="Wrocław Krasnal">
+                <div class="steam" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+                <div class="smoke" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+                <div class="fire" aria-hidden="true"><span class="flame flame-1"></span><span class="flame flame-2"></span><span class="flame flame-3"></span></div>
+            </div>
+            
             <div class="pan-container">
                 <div class="pan"></div>
                 <div id="pierog" class="pierog">🥟</div>
-                <div id="fire" class="fire hide">🔥</div>
+                <div class="smoke" aria-hidden="true"><span></span><span></span><span></span><span></span></div>
+                <div class="fire" aria-hidden="true"><span class="flame flame-1"></span><span class="flame flame-2"></span><span class="flame flame-3"></span></div>
             </div>
         </div>
     </div>
@@ -180,46 +262,65 @@
             fetchWeather();
         });
 
+        // Helper function to map temperature to a smooth 0.0 to 1.0 value
+        function getIntensity(temp, minTemp, maxTemp) {
+            return Math.max(0, Math.min(1, (temp - minTemp) / (maxTemp - minTemp)));
+        }
+
         async function fetchWeather() {
             const tempDisplay = document.getElementById('temp-display');
             const statusText = document.getElementById('status-text');
             const gnome = document.getElementById('gnome');
-            const fire = document.getElementById('fire');
+            
+            const imgNormal = "https://user-gen-media-assets.s3.amazonaws.com/gpt4o_images/cb2f6fe2-1d3d-4ad9-bb0f-4192474c9c60.png";
+            const imgSweat = "https://user-gen-media-assets.s3.amazonaws.com/gpt4o_images/8e451cde-dd15-4b76-a4cf-1a1b667632ad.png";
+            const imgMelt = "https://user-gen-media-assets.s3.amazonaws.com/gpt4o_images/268f835c-1a4d-41e8-adfe-94df92e6b88d.png";
 
-            // Wrocław coordinates
             const lat = 51.1079;
-            const lon = 27.0385;
-
-            // Open-Meteo API URL (No API key needed!)
+            const lon = 17.0385;
             const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,apparent_temperature&timezone=Europe%2FWarsaw`;
 
             try {
                 const response = await fetch(url);
                 const data = await response.json();
-
-                const temp = data.current.temperature_2m;
+                
+                let temp = 130;data.current.temperature_2m;
                 const feelsLike = data.current.apparent_temperature;
 
-                // Update the big text
+                // --- TEST MODE --- 
+                // Uncomment the line below and change the number to test different smoke sizes!
+                // temp = 33; 
+
                 tempDisplay.innerText = `${temp}°C`;
 
-                // Logic for the indicators
+                // --- 1. CONTINUOUS EFFECTS MAPPING ---
+                // Steam starts at 22°C, maxes out at 28°C
+                const steamLevel = getIntensity(temp, 22, 28);
+                // Smoke starts at 26°C, maxes out into a massive cloud at 38°C
+                const smokeLevel = getIntensity(temp, 26, 38);
+                // Fire starts at 28°C, maxes out at 35°C
+                const fireLevel = getIntensity(temp, 28, 35);
+
+                // Inject these values straight into the CSS!
+                document.documentElement.style.setProperty('--steam-intensity', steamLevel);
+                document.documentElement.style.setProperty('--smoke-intensity', smokeLevel);
+                document.documentElement.style.setProperty('--fire-intensity', fireLevel);
+
+                // --- 2. DISCRETE IMAGE AND TEXT LOGIC ---
                 if (temp < 25) {
-                    // Normal
                     statusText.innerHTML = `Odczuwalna: ${feelsLike}°C.<br>Krasnale są bezpieczne. Pierogi surowe.`;
-
+                    gnome.src = imgNormal;
+                    document.body.classList.remove('state-warm', 'state-hot');
                 } else if (temp >= 25 && temp < 30) {
-                    // Warm
-                    statusText.innerHTML = `Odczuwalna: ${feelsLike}°C.<br>Idealna pogoda na smażenie pierogów na Rynku.`;
+                    statusText.innerHTML = `Odczuwalna: ${feelsLike}°C.<br>Krasnal paruje. Pierogi wchodzą na patelnię.`;
+                    gnome.src = imgSweat;
+                    document.body.classList.remove('state-hot');
                     document.body.classList.add('state-warm');
-
                 } else {
-                    // Heatwave (30+)
-                    statusText.innerHTML = `Odczuwalna: ${feelsLike}°C.<br>ALARM: Krasnale się topią! Zostań w domu!`;
+                    statusText.innerHTML = `Odczuwalna: ${feelsLike}°C.<br>ALARM: Krasnal się topi, a pierogi płoną!`;
+                    gnome.src = imgMelt;
+                    document.body.classList.remove('state-warm');
                     document.body.classList.add('state-hot');
-                    fire.classList.remove('hide'); // Ignite the pieróg!
-                    // Change gnome to melting face emoji just for fun
-                    gnome.innerText = "🫠";
                 }
 
             } catch (error) {
@@ -229,7 +330,5 @@
             }
         }
     </script>
-
 </body>
-
 </html>
