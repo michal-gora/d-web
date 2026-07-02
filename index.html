@@ -310,24 +310,25 @@
             width: 30px;
             height: 65px;
             margin-left: -15px;
-            bottom: 12px;
+            bottom: 4px;
             z-index: 3;
+            opacity: 0.9;
         }
 
         .flame-2 {
             width: 22px;
             height: 45px;
             margin-left: -28px;
-            bottom: 14px;
-            opacity: 0.9;
+            bottom: 6px;
+            opacity: 0.8;
         }
 
         .flame-3 {
             width: 20px;
             height: 40px;
             margin-left: 10px;
-            bottom: 16px;
-            opacity: 0.85;
+            bottom: 8px;
+            opacity: 0.75;
         }
 
         @keyframes flameFlicker {
@@ -338,7 +339,7 @@
 
             50% {
                 transform: scaleY(1.1) rotate(3deg);
-                opacity: 1;
+                opacity: 0.95;
             }
 
             100% {
@@ -447,9 +448,9 @@
             const statusText = document.getElementById('status-text');
             const gnome = document.getElementById('gnome');
 
-            const imgNormal = "https://user-gen-media-assets.s3.amazonaws.com/gpt4o_images/cb2f6fe2-1d3d-4ad9-bb0f-4192474c9c60.png";
-            const imgSweat = "https://user-gen-media-assets.s3.amazonaws.com/gpt4o_images/8e451cde-dd15-4b76-a4cf-1a1b667632ad.png";
-            const imgMelt = "https://user-gen-media-assets.s3.amazonaws.com/gpt4o_images/268f835c-1a4d-41e8-adfe-94df92e6b88d.png";
+            const imgNormal = "krasnal0.png";
+            const imgSweat = "krasnal1.png";
+            const imgMelt = "krasnal2.png";
 
             const lat = 51.1079;
             const lon = 17.0385;
@@ -464,7 +465,7 @@
 
                 // --- TEST MODE --- 
                 // Uncomment to test extreme temperatures (e.g. 38)
-                temp = 32;
+                // temp = 36;
 
                 tempDisplay.innerText = `${temp}°C`;
 
