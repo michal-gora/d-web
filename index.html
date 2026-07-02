@@ -66,6 +66,16 @@
             position: relative;
         }
 
+        .location-title {
+            font-family: 'Just Another Hand', cursive;
+            font-size: 2rem;
+            color: #777;
+            margin: 0 0 30px 0;
+            /* Pulls it slightly closer to the big temperature text */
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
         /* --- THE GNOME --- */
         .gnome-wrap {
             position: relative;
@@ -83,8 +93,36 @@
             position: relative;
             z-index: 1;
             transition: transform 0.8s ease;
-            /* Filter removed */
             transform-origin: bottom center;
+
+            /* Add the new CSS variable for duration with a fallback */
+            animation: jumpWait var(--jump-duration, 5s) infinite ease-in-out;
+        }
+
+        .state-hot .gnome-img {
+            animation: none;
+        }
+
+        @keyframes jumpWait {
+            0% {
+                transform: translateY(0);
+            }
+
+            10% {
+                transform: translateY(-30px);
+            }
+
+            /* Jump up */
+            20% {
+                transform: translateY(0);
+            }
+
+            /* Land back down */
+            100% {
+                transform: translateY(0);
+            }
+
+            /* Wait perfectly still until the next loop */
         }
 
         /* --- THE PAN & PIERÓG --- */
@@ -93,6 +131,7 @@
             width: 120px;
             height: 120px;
             bottom: 80px;
+            left: 50px;
             display: flex;
             justify-content: center;
             align-items: flex-end;
@@ -368,6 +407,7 @@
 <body>
 
     <div id="weather-dashboard">
+        <p class="location-title">📍 Wrocław, Polska</p>
         <h1 id="temp-display">Pingowanie krasnali... 📡</h1>
         <h2 id="status-text">Sprawdzanie temperatury bruku...</h2>
 
@@ -472,6 +512,14 @@
                 const steamLevel = getIntensity(temp, 20, 28);
                 const smokeLevel = getIntensity(temp, 25, 38);
                 const fireLevel = getIntensity(temp, 28, 35);
+
+                let jumpDuration = 6;
+                if (temp > 15 && temp < 30) {
+                    // Map the temperature linearly to the duration
+                    jumpDuration = 6 - ((temp - 15) / 14) * 4.5;
+                }
+                // Inject the variable into the CSS
+                document.documentElement.style.setProperty('--jump-duration', `${jumpDuration.toFixed(2)}s`);
 
                 document.documentElement.style.setProperty('--steam-intensity', steamLevel);
                 document.documentElement.style.setProperty('--smoke-intensity', smokeLevel);
