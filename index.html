@@ -511,77 +511,74 @@
         const MAX_DELAY_MS = 6000; // Slowest wait time
         const MIN_DELAY_MS = 100;  // Fastest wait time (Hard cap)
 
-        const JUMP_ANIMATION_DURATION_MS = 100; // MUST match the '1.0s' in your CSS
+        const JUMP_ANIMATION_DURATION_MS = 100; // MUST match the '1.0s' (or 0.1s) in your CSS
 
-        // Default to the slowest wait time
-        let waitTime = MAX_DELAY_MS;
+        // Global Loop State
+        window.currentWaitTime = MAX_DELAY_MS;
+        window.isJumpLoopRunning = false;
 
         let temp = 20.0;
         let feelsLike = 20.0;
 
-        // --- 2. SLIDER LISTENER ---
+        // --- SLIDER LISTENER ---
         const tempSlider = document.getElementById('temp-slider');
-
         tempSlider.addEventListener('input', (e) => {
-            // Update the global variables based on the slider
             temp = parseFloat(e.target.value);
-            feelsLike = temp; // Just fake the "feels like" for the manual slider
-
-            // Re-run the visual logic!
+            feelsLike = temp;
             applyTemperature();
         });
 
-        function triggerJump() {
+        // --- BACKGROUND JUMPING LOOP ---
+        function jumpLoop() {
+            const gnome = document.getElementById('gnome');
+            if (!gnome) return;
+
             gnome.classList.add('jumping');
 
-            // Remove the class when the jump finishes so it can jump again later
             window.animTimeout = setTimeout(() => {
                 gnome.classList.remove('jumping');
+
+                // Keep looping if we haven't melted
+                if (window.isJumpLoopRunning) {
+                    window.jumpTimeout = setTimeout(jumpLoop, window.currentWaitTime);
+                }
             }, JUMP_ANIMATION_DURATION_MS);
         }
 
-
+        // --- INITIALIZATION ---
         document.addEventListener("DOMContentLoaded", () => {
             randomizeParticles();
             fetchWeather();
         });
 
-        // Injects totally random physics variables into EVERY single animated span
+        // --- PARTICLES ---
         function randomizeParticles() {
-            // Steam & Smoke Spans
             const clouds = document.querySelectorAll('.particle-layer span');
             clouds.forEach(particle => {
-                // Random drift left/right between -40px and +40px
                 const randomX = (Math.random() * 80 - 40).toFixed(0);
-                // Random scale end size between 3.5x and 6x
                 const randomScale = (3.5 + Math.random() * 2.5).toFixed(2);
-                // Random animation cycle time between 2s and 4s
                 const randomDuration = (2 + Math.random() * 2).toFixed(2);
-                // Random start offset so they never sync up
                 const randomDelay = (Math.random() * -5).toFixed(2);
-
                 particle.style.setProperty('--rnd-x', `${randomX}px`);
                 particle.style.setProperty('--rnd-scale', randomScale);
                 particle.style.setProperty('--rnd-duration', `${randomDuration}s`);
                 particle.style.setProperty('--rnd-delay', `${randomDelay}s`);
             });
 
-            // Fire Spans (Need tighter, faster variables)
             const flames = document.querySelectorAll('.flame');
             flames.forEach(flame => {
-                const randomDuration = (0.4 + Math.random() * 0.4).toFixed(2); // 0.4s - 0.8s
+                const randomDuration = (0.4 + Math.random() * 0.4).toFixed(2);
                 const randomDelay = (Math.random() * -2).toFixed(2);
-
                 flame.style.setProperty('--rnd-duration', `${randomDuration}s`);
                 flame.style.setProperty('--rnd-delay', `${randomDelay}s`);
             });
         }
 
-        function getIntensity(temp, minTemp, maxTemp) {
-            return Math.max(0, Math.min(1, (temp - minTemp) / (maxTemp - minTemp)));
+        function getIntensity(t, minT, maxT) {
+            return Math.max(0, Math.min(1, (t - minT) / (maxT - minT)));
         }
 
-
+        // --- CORE LOGIC ---
         function applyTemperature() {
             const tempDisplay = document.getElementById('temp-display');
             const statusText = document.getElementById('status-text');
@@ -591,11 +588,7 @@
             const imgSweat = "krasnal1.png";
             const imgMelt = "krasnal2.png";
 
-            // --- TEST MODE --- 
-            // Uncomment to test extreme temperatures (e.g. 38)
-            // temp = 20.0;
-
-            tempDisplay.innerText = `${temp}°C`;
+            if (tempDisplay) tempDisplay.innerText = `${temp}°C`;
 
             const steamLevel = getIntensity(temp, 20, 28);
             const smokeLevel = getIntensity(temp, 25, 38);
@@ -606,62 +599,53 @@
             document.documentElement.style.setProperty('--fire-intensity', fireLevel);
 
             if (temp < 25) {
-                statusText.innerHTML = `Odczuwalna: ${feelsLike}°C.<br>Krasnale są bezpieczne. Pierogi surowe.`;
-                gnome.src = imgNormal;
+                if (statusText) statusText.innerHTML = `Odczuwalna: ${feelsLike}°C.<br>Krasnale są bezpieczne. Pierogi surowe.`;
+                if (gnome) gnome.src = imgNormal;
                 document.body.classList.remove('state-warm', 'state-hot');
             } else if (temp >= 25 && temp < 35) {
-                statusText.innerHTML = `Odczuwalna: ${feelsLike}°C.<br>Krasnal paruje. Pierogi wchodzą na patelnię.`;
-                gnome.src = imgSweat;
+                if (statusText) statusText.innerHTML = `Odczuwalna: ${feelsLike}°C.<br>Krasnal paruje. Pierogi wchodzą na patelnię.`;
+                if (gnome) gnome.src = imgSweat;
                 document.body.classList.remove('state-hot');
                 document.body.classList.add('state-warm');
             } else {
-                statusText.innerHTML = `Odczuwalna: ${feelsLike}°C.<br>ALARM: Krasnal się topi, a pierogi płoną!`;
-                gnome.src = imgMelt;
+                if (statusText) statusText.innerHTML = `Odczuwalna: ${feelsLike}°C.<br>ALARM: Krasnal się topi, a pierogi płoną!`;
+                if (gnome) gnome.src = imgMelt;
                 document.body.classList.remove('state-warm');
                 document.body.classList.add('state-hot');
             }
 
-            // --- JUMP TIMING LOGIC (Exponential Curve) ---
-
-
+            // --- JUMP TIMING LOGIC ---
+            let newWaitTime = MAX_DELAY_MS;
 
             if (temp > MIN_TEMP && temp < MAX_TEMP) {
-                // Calculate 't' (a ratio from 0.0 to 1.0 based on temperature)
                 const t = (temp - MIN_TEMP) / (MAX_TEMP - MIN_TEMP);
-
-                // Exponential interpolation: 
-                // This creates a perfectly smooth, natural acceleration curve.
-                // At 21°C it smoothly drops to ~4570ms instead of dropping off a cliff.
-                waitTime = MAX_DELAY_MS * Math.pow(MIN_DELAY_MS / MAX_DELAY_MS, t);
-
+                newWaitTime = MAX_DELAY_MS * Math.pow(MIN_DELAY_MS / MAX_DELAY_MS, t);
             } else if (temp >= MAX_TEMP) {
-                waitTime = MIN_DELAY_MS;
+                newWaitTime = MIN_DELAY_MS;
             }
 
-            // 1. Clear the old interval & timeout if the slider moved
-            if (window.jumpInterval) clearInterval(window.jumpInterval);
-            if (window.animTimeout) {
-                clearTimeout(window.animTimeout);
-                gnome.classList.remove('jumping'); // Reset the class safely
+            // Update global tempo silently
+            window.currentWaitTime = newWaitTime;
+
+            // Stop logic if melted
+            if (temp >= MAX_TEMP) {
+                window.isJumpLoopRunning = false;
+                if (window.jumpInterval) clearInterval(window.jumpInterval);
+                if (window.jumpTimeout) clearTimeout(window.jumpTimeout);
+                if (window.animTimeout) clearTimeout(window.animTimeout);
+                if (gnome) gnome.classList.remove('jumping');
+                return;
             }
 
-            // 2. If it's too hot, stop completely
-            if (temp >= MAX_TEMP) return;
-
-            // 3. Create the new interval with the updated duration
-            // Total cycle = time spent in the air + time spent waiting on the ground
-            const totalCycleTime = JUMP_ANIMATION_DURATION_MS + waitTime;
-            
-            window.jumpInterval = setInterval(triggerJump, totalCycleTime);
-
-            // 4. setInterval waits BEFORE firing the first time, 
-            // so we call it manually once to make him jump immediately
-            triggerJump();
+            // Start logic
+            if (!window.isJumpLoopRunning) {
+                window.isJumpLoopRunning = true;
+                jumpLoop();
+            }
         }
 
+        // --- WEATHER API ---
         async function fetchWeather() {
-
-
             const lat = 51.1079;
             const lon = 17.0385;
             const url = `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&current=temperature_2m,apparent_temperature&timezone=Europe%2FWarsaw`;
@@ -673,11 +657,22 @@
                 temp = data.current.temperature_2m;
                 feelsLike = data.current.apparent_temperature;
 
+                // Make the slider match the real weather when it loads
+                if (tempSlider) {
+                    tempSlider.value = temp;
+                }
+
             } catch (error) {
                 console.error("Error fetching weather:", error);
-                tempDisplay.innerText = "Błąd API 💥";
-                statusText.innerText = "Za gorąco. Serwery pogodowe się stopiły.";
+
+                // Fixed bug: These needed to be grabbed here so they don't crash the script on an API error
+                const tempDisplay = document.getElementById('temp-display');
+                const statusText = document.getElementById('status-text');
+                if (tempDisplay) tempDisplay.innerText = "Błąd API 💥";
+                if (statusText) statusText.innerText = "Za gorąco. Serwery pogodowe się stopiły.";
             }
+
+            // Apply whatever temperature we ended up with
             applyTemperature();
         }
     </script>
