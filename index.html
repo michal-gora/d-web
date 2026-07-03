@@ -68,7 +68,8 @@
 
         /* --- SLIDER STYLING --- */
         .slider-container {
-            margin-bottom: 30px;
+            margin-bottom: 0px;
+            margin-top: 20px;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -516,6 +517,8 @@
         // Global Loop State
         window.currentWaitTime = MAX_DELAY_MS;
         window.isJumpLoopRunning = false;
+        window.isWaiting = false; // Tracks if he is currently on the ground waiting
+        window.lastJumpFinished = Date.now(); // Tracks exactly when the last jump ended
 
         let temp = 20.0;
         let feelsLike = 20.0;
@@ -533,6 +536,7 @@
             const gnome = document.getElementById('gnome');
             if (!gnome) return;
 
+            window.isWaiting = false; // Animation starting, no longer waiting
             gnome.classList.add('jumping');
 
             window.animTimeout = setTimeout(() => {
@@ -540,6 +544,8 @@
 
                 // Keep looping if we haven't melted
                 if (window.isJumpLoopRunning) {
+                    window.isWaiting = true; // Entering the wait phase
+                    window.lastJumpFinished = Date.now(); // Record EXACTLY when the wait started
                     window.jumpTimeout = setTimeout(jumpLoop, window.currentWaitTime);
                 }
             }, JUMP_ANIMATION_DURATION_MS);
@@ -630,6 +636,7 @@
             // Stop logic if melted
             if (temp >= MAX_TEMP) {
                 window.isJumpLoopRunning = false;
+                window.isWaiting = false;
                 if (window.jumpInterval) clearInterval(window.jumpInterval);
                 if (window.jumpTimeout) clearTimeout(window.jumpTimeout);
                 if (window.animTimeout) clearTimeout(window.animTimeout);
@@ -637,10 +644,25 @@
                 return;
             }
 
-            // Start logic
+            // Start or Update logic
             if (!window.isJumpLoopRunning) {
                 window.isJumpLoopRunning = true;
                 jumpLoop();
+            } else if (window.isWaiting) {
+                // We are currently sitting on the ground waiting. 
+                // Let's recalculate the timer based on the new slider position!
+                const timeAlreadyWaited = Date.now() - window.lastJumpFinished;
+                const timeRemaining = window.currentWaitTime - timeAlreadyWaited;
+
+                clearTimeout(window.jumpTimeout); // Cancel the old, slow wait
+
+                if (timeRemaining <= 0) {
+                    // If the new tempo is so fast that we should have already jumped, jump NOW!
+                    jumpLoop();
+                } else {
+                    // Otherwise, just wait whatever time is left of the new tempo
+                    window.jumpTimeout = setTimeout(jumpLoop, timeRemaining);
+                }
             }
         }
 
