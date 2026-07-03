@@ -56,13 +56,68 @@
             line-height: 1.2;
         }
 
+        /* Forces the text and slider to stay in front of the image and smoke */
         h1,
         h2,
-        .location-title {
+        .location-title,
+        .slider-container {
             position: relative;
             z-index: 20;
-            /* Optional: Add a tiny text-shadow so it stays readable if smoke goes behind it */
             text-shadow: 0px 2px 10px rgba(255, 255, 255, 0.8);
+        }
+
+        /* --- SLIDER STYLING --- */
+        .slider-container {
+            margin-bottom: 30px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .slider-container label {
+            font-family: 'Just Another Hand', cursive;
+            font-size: 1.8rem;
+            color: #666;
+            text-shadow: none;
+        }
+
+        input[type=range] {
+            -webkit-appearance: none;
+            width: 80%;
+            background: transparent;
+        }
+
+        input[type=range]:focus {
+            outline: none;
+        }
+
+        /* Slider Track */
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 8px;
+            cursor: pointer;
+            background: #ddd;
+            border-radius: 4px;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.2);
+        }
+
+        /* Slider Thumb */
+        input[type=range]::-webkit-slider-thumb {
+            height: 24px;
+            width: 24px;
+            border-radius: 50%;
+            background: #d35400;
+            /* Matches the orange H1 text */
+            cursor: pointer;
+            -webkit-appearance: none;
+            margin-top: -8px;
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.3);
+            transition: transform 0.1s;
+        }
+
+        input[type=range]::-webkit-slider-thumb:hover {
+            transform: scale(1.15);
         }
 
         /* --- THE SCENE --- */
@@ -441,9 +496,51 @@
                 </div>
             </div>
         </div>
+        <div class="slider-container">
+            <label for="temp-slider">Zmień temperaturę (Test Mode)</label>
+            <input type="range" id="temp-slider" min="10" max="40" step="0.5" value="20">
+        </div>
     </div>
 
     <script>
+        // 1. Temperature Thresholds
+        const MIN_TEMP = 20; // °C where jumping starts getting faster
+        const MAX_TEMP = 35; // °C where he melts and jumping stops
+
+        // 2. Delay Thresholds (Milliseconds between jumps)
+        const MAX_DELAY_MS = 6000; // Slowest wait time
+        const MIN_DELAY_MS = 100;  // Fastest wait time (Hard cap)
+
+        const JUMP_ANIMATION_DURATION_MS = 100; // MUST match the '1.0s' in your CSS
+
+        // Default to the slowest wait time
+        let waitTime = MAX_DELAY_MS;
+
+        let temp = 20.0;
+        let feelsLike = 20.0;
+
+        // --- 2. SLIDER LISTENER ---
+        const tempSlider = document.getElementById('temp-slider');
+
+        tempSlider.addEventListener('input', (e) => {
+            // Update the global variables based on the slider
+            temp = parseFloat(e.target.value);
+            feelsLike = temp; // Just fake the "feels like" for the manual slider
+
+            // Re-run the visual logic!
+            applyTemperature();
+        });
+
+        function triggerJump() {
+            gnome.classList.add('jumping');
+
+            // Remove the class when the jump finishes so it can jump again later
+            window.animTimeout = setTimeout(() => {
+                gnome.classList.remove('jumping');
+            }, JUMP_ANIMATION_DURATION_MS);
+        }
+
+
         document.addEventListener("DOMContentLoaded", () => {
             randomizeParticles();
             fetchWeather();
@@ -484,7 +581,8 @@
             return Math.max(0, Math.min(1, (temp - minTemp) / (maxTemp - minTemp)));
         }
 
-        async function fetchWeather() {
+
+        function applyTemperature() {
             const tempDisplay = document.getElementById('temp-display');
             const statusText = document.getElementById('status-text');
             const gnome = document.getElementById('gnome');
@@ -492,6 +590,77 @@
             const imgNormal = "krasnal0.png";
             const imgSweat = "krasnal1.png";
             const imgMelt = "krasnal2.png";
+
+            // --- TEST MODE --- 
+            // Uncomment to test extreme temperatures (e.g. 38)
+            // temp = 20.0;
+
+            tempDisplay.innerText = `${temp}°C`;
+
+            const steamLevel = getIntensity(temp, 20, 28);
+            const smokeLevel = getIntensity(temp, 25, 38);
+            const fireLevel = getIntensity(temp, 28, 35);
+
+            document.documentElement.style.setProperty('--steam-intensity', steamLevel);
+            document.documentElement.style.setProperty('--smoke-intensity', smokeLevel);
+            document.documentElement.style.setProperty('--fire-intensity', fireLevel);
+
+            if (temp < 25) {
+                statusText.innerHTML = `Odczuwalna: ${feelsLike}°C.<br>Krasnale są bezpieczne. Pierogi surowe.`;
+                gnome.src = imgNormal;
+                document.body.classList.remove('state-warm', 'state-hot');
+            } else if (temp >= 25 && temp < 35) {
+                statusText.innerHTML = `Odczuwalna: ${feelsLike}°C.<br>Krasnal paruje. Pierogi wchodzą na patelnię.`;
+                gnome.src = imgSweat;
+                document.body.classList.remove('state-hot');
+                document.body.classList.add('state-warm');
+            } else {
+                statusText.innerHTML = `Odczuwalna: ${feelsLike}°C.<br>ALARM: Krasnal się topi, a pierogi płoną!`;
+                gnome.src = imgMelt;
+                document.body.classList.remove('state-warm');
+                document.body.classList.add('state-hot');
+            }
+
+            // --- JUMP TIMING LOGIC (Exponential Curve) ---
+
+
+
+            if (temp > MIN_TEMP && temp < MAX_TEMP) {
+                // Calculate 't' (a ratio from 0.0 to 1.0 based on temperature)
+                const t = (temp - MIN_TEMP) / (MAX_TEMP - MIN_TEMP);
+
+                // Exponential interpolation: 
+                // This creates a perfectly smooth, natural acceleration curve.
+                // At 21°C it smoothly drops to ~4570ms instead of dropping off a cliff.
+                waitTime = MAX_DELAY_MS * Math.pow(MIN_DELAY_MS / MAX_DELAY_MS, t);
+
+            } else if (temp >= MAX_TEMP) {
+                waitTime = MIN_DELAY_MS;
+            }
+
+            // 1. Clear the old interval & timeout if the slider moved
+            if (window.jumpInterval) clearInterval(window.jumpInterval);
+            if (window.animTimeout) {
+                clearTimeout(window.animTimeout);
+                gnome.classList.remove('jumping'); // Reset the class safely
+            }
+
+            // 2. If it's too hot, stop completely
+            if (temp >= MAX_TEMP) return;
+
+            // 3. Create the new interval with the updated duration
+            // Total cycle = time spent in the air + time spent waiting on the ground
+            const totalCycleTime = JUMP_ANIMATION_DURATION_MS + waitTime;
+            
+            window.jumpInterval = setInterval(triggerJump, totalCycleTime);
+
+            // 4. setInterval waits BEFORE firing the first time, 
+            // so we call it manually once to make him jump immediately
+            triggerJump();
+        }
+
+        async function fetchWeather() {
+
 
             const lat = 51.1079;
             const lon = 17.0385;
@@ -501,91 +670,15 @@
                 const response = await fetch(url);
                 const data = await response.json();
 
-                let temp = data.current.temperature_2m;
-                const feelsLike = data.current.apparent_temperature;
-
-                // --- TEST MODE --- 
-                // Uncomment to test extreme temperatures (e.g. 38)
-                // temp = 20.0;
-
-                tempDisplay.innerText = `${temp}°C`;
-
-                const steamLevel = getIntensity(temp, 20, 28);
-                const smokeLevel = getIntensity(temp, 25, 38);
-                const fireLevel = getIntensity(temp, 28, 35);
-
-                document.documentElement.style.setProperty('--steam-intensity', steamLevel);
-                document.documentElement.style.setProperty('--smoke-intensity', smokeLevel);
-                document.documentElement.style.setProperty('--fire-intensity', fireLevel);
-
-                if (temp < 25) {
-                    statusText.innerHTML = `Odczuwalna: ${feelsLike}°C.<br>Krasnale są bezpieczne. Pierogi surowe.`;
-                    gnome.src = imgNormal;
-                    document.body.classList.remove('state-warm', 'state-hot');
-                } else if (temp >= 25 && temp < 35) {
-                    statusText.innerHTML = `Odczuwalna: ${feelsLike}°C.<br>Krasnal paruje. Pierogi wchodzą na patelnię.`;
-                    gnome.src = imgSweat;
-                    document.body.classList.remove('state-hot');
-                    document.body.classList.add('state-warm');
-                } else {
-                    statusText.innerHTML = `Odczuwalna: ${feelsLike}°C.<br>ALARM: Krasnal się topi, a pierogi płoną!`;
-                    gnome.src = imgMelt;
-                    document.body.classList.remove('state-warm');
-                    document.body.classList.add('state-hot');
-                }
-
-                // --- JUMP TIMING LOGIC (Exponential Curve) ---
-
-                // 1. Temperature Thresholds
-                const MIN_TEMP = 20; // °C where jumping starts getting faster
-                const MAX_TEMP = 35; // °C where he melts and jumping stops
-
-                // 2. Delay Thresholds (Milliseconds between jumps)
-                const MAX_DELAY_MS = 6000; // Slowest wait time
-                const MIN_DELAY_MS = 100;  // Fastest wait time (Hard cap)
-
-                const JUMP_ANIMATION_DURATION_MS = 100; // MUST match the '1.0s' in your CSS
-
-                // Default to the slowest wait time
-                let waitTime = MAX_DELAY_MS;
-
-                if (temp > MIN_TEMP && temp < MAX_TEMP) {
-                    // Calculate 't' (a ratio from 0.0 to 1.0 based on temperature)
-                    const t = (temp - MIN_TEMP) / (MAX_TEMP - MIN_TEMP);
-
-                    // Exponential interpolation: 
-                    // This creates a perfectly smooth, natural acceleration curve.
-                    // At 21°C it smoothly drops to ~4570ms instead of dropping off a cliff.
-                    waitTime = MAX_DELAY_MS * Math.pow(MIN_DELAY_MS / MAX_DELAY_MS, t);
-
-                } else if (temp >= MAX_TEMP) {
-                    waitTime = MIN_DELAY_MS;
-                }
-
-                // Clear any existing jump timeout
-                if (window.jumpTimeout) clearTimeout(window.jumpTimeout);
-
-                // Start the jumping loop
-                function triggerJump() {
-                    if (temp >= MAX_TEMP) return;
-
-                    gnome.classList.add('jumping');
-
-                    setTimeout(() => {
-                        gnome.classList.remove('jumping');
-                        window.jumpTimeout = setTimeout(triggerJump, waitTime);
-                    }, JUMP_ANIMATION_DURATION_MS);
-                }
-
-                if (temp < MAX_TEMP) {
-                    triggerJump();
-                }
+                temp = data.current.temperature_2m;
+                feelsLike = data.current.apparent_temperature;
 
             } catch (error) {
                 console.error("Error fetching weather:", error);
                 tempDisplay.innerText = "Błąd API 💥";
                 statusText.innerText = "Za gorąco. Serwery pogodowe się stopiły.";
             }
+            applyTemperature();
         }
     </script>
 </body>
